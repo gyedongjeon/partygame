@@ -1,9 +1,11 @@
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
     constructor(
@@ -11,10 +13,13 @@ export class AuthController {
         private configService: ConfigService,
     ) { }
 
+    @ApiOperation({ summary: 'Initiate Google OAuth2 flow' })
     @Get('google')
     @UseGuards(AuthGuard('google'))
     async googleAuth(@Req() req) { }
 
+    @ApiOperation({ summary: 'Google OAuth2 callback' })
+    @ApiResponse({ status: 302, description: 'Redirects to frontend with HttpOnly cookie' })
     @Get('google/redirect')
     @UseGuards(AuthGuard('google'))
     async googleAuthRedirect(@Req() req, @Res() res) {
