@@ -39,11 +39,11 @@ export default function RoomPage() {
         // Assuming we are "myself" - in real app, userId comes from Auth Context
         const userId = sessionStorage.getItem('userId') || `user_${Math.floor(Math.random() * 1000)}`;
 
-        socket.emit('joinRoom', { roomId: id, userId }, (response: any) => {
+        socket.emit('joinRoom', { roomId: id, userId }, (response: { event: string; data: Room | string }) => {
             if (response.event === 'error') {
-                setError(response.data);
+                setError(response.data as string);
             } else if (response.event === 'roomJoined') {
-                setRoom(response.data);
+                setRoom(response.data as Room);
             }
         });
 
