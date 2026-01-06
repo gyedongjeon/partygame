@@ -26,7 +26,9 @@ describe('LobbyService', () => {
     it('should fail if not host', () => {
       const room = service.createRoom('host', 'socket1');
       service.joinRoom(room.id, 'player2', 'socket2');
-      expect(() => service.startGame(room.id, 'player2')).toThrow('Only host can start game');
+      expect(() => service.startGame(room.id, 'player2')).toThrow(
+        'Only host can start game',
+      );
     });
   });
 
@@ -37,7 +39,7 @@ describe('LobbyService', () => {
       service.startGame(room.id, 'host');
 
       const imposterId = room.imposterId!;
-      const civilianId = room.players.find(p => p.id !== imposterId)!.id;
+      const civilianId = room.players.find((p) => p.id !== imposterId)!.id;
 
       // Vote for imposter (Civilians should win)
       service.vote(room.id, imposterId, imposterId); // Imposter votes for self (weird but valid)

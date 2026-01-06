@@ -11,7 +11,7 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   @ApiOperation({ summary: 'Initiate Google OAuth2 flow' })
   @Get('google')
