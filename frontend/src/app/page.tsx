@@ -16,7 +16,7 @@ export default function Home() {
         if (res.ok) {
           // If authorized, verify result is JSON and valid (optional but good)
           // and redirect
-          router.push('/lobby');
+          router.push('/games');
         } else {
           setLoading(false);
         }
