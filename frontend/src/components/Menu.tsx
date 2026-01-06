@@ -60,6 +60,16 @@ export default function Menu() {
                         Menu
                     </div>
                     <button
+                        onClick={() => {
+                            setIsOpen(false);
+                            router.push('/games');
+                        }}
+                        className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-zinc-700"
+                    >
+                        <MenuIcon className="mr-2 h-4 w-4" />
+                        Games
+                    </button>
+                    <button
                         onClick={handleLogout}
                         className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-zinc-700"
                     >
