@@ -8,14 +8,15 @@ import { AuthenticatedUser } from '../auth/authenticated-user.interface';
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Returns current user profile' })
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
-  getProfile(@Req() req: { user: AuthenticatedUser }) {
-    return req.user;
+  async getProfile(@Req() req: { user: AuthenticatedUser }) {
+    const user = await this.usersService.findById(req.user.id);
+    return user;
   }
 
   @ApiOperation({ summary: 'Update current user profile' })
