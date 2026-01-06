@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button" // Assuming you might have this, but I'll stick to standard html button if not present
+// Button import removed
 // Actually I don't have components yet. I will use raw tailwind.
 
 export default function Home() {
@@ -8,7 +8,7 @@ export default function Home() {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-8 shadow-xl">
         <p className="mb-6 text-center text-zinc-400">Sign in to start playing</p>
         <a
-          href="http://localhost:4000/api/auth/google"
+          href="http://localhost:4000/v1/auth/google"
           className="flex items-center gap-3 rounded-md bg-white px-6 py-3 font-semibold text-black transition-transform hover:scale-105 active:scale-95"
         >
           {/* Simple Google Icon SVG */}
