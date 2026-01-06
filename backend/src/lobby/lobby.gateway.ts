@@ -12,14 +12,15 @@ import { LobbyService } from './lobby.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*', // Allow all origins for dev
+    origin: 'http://localhost:3000',
+    credentials: true,
   },
 })
 export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly lobbyService: LobbyService) {}
+  constructor(private readonly lobbyService: LobbyService) { }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -27,8 +28,6 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
-    // Ideally, we handle cleanup here (remove user from room if they disconnect)
-    // But for now, we leave it manual or implement later
   }
 
   @SubscribeMessage('createRoom')
@@ -36,9 +35,16 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { userId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.lobbyService.createRoom(data.userId, client.id);
-    await client.join(room.id);
-    return { event: 'roomCreated', data: room };
+    console.log(`[createRoom] Request from ${data.userId} (socket: ${client.id})`);
+    try {
+      const room = this.lobbyService.createRoom(data.userId, client.id);
+      await client.join(room.id);
+      console.log(`[createRoom] Room created: ${room.id}`);
+      return { type: 'roomCreated', data: { id: room.id } };
+    } catch (error) {
+      console.error(`[createRoom] Error:`, error);
+      return { type: 'error', data: (error as Error).message };
+    }
   }
 
   @SubscribeMessage('joinRoom')
@@ -54,9 +60,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       await client.join(room.id);
       this.server.to(room.id).emit('playerJoined', room);
-      return { event: 'roomJoined', data: room };
+      return { type: 'roomJoined', data: room };
     } catch (error) {
-      return { event: 'error', data: (error as Error).message };
+      return { type: 'error', data: (error as Error).message };
     }
   }
 
@@ -70,7 +76,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (room) {
       this.server.to(room.id).emit('playerLeft', room);
     }
-    return { event: 'leftRoom', data: { roomId: data.roomId } };
+    return { type: 'leftRoom', data: { roomId: data.roomId } };
   }
 
   @SubscribeMessage('startGame')
@@ -78,7 +84,6 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const room = this.lobbyService.startGame(data.roomId, data.userId);
 
-      // Notify each player individually
       room.players.forEach((player) => {
         const isImposter = player.id === room.imposterId;
         const secret = isImposter
@@ -91,9 +96,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       });
 
-      return { event: 'gameStarted', data: { success: true } };
+      return { type: 'gameStarted', data: { success: true } };
     } catch (error) {
-      return { event: 'error', data: (error as Error).message };
+      return { type: 'error', data: (error as Error).message };
     }
   }
 
@@ -112,9 +117,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(room.id).emit('gameEnded', result);
       }
 
-      return { event: 'voteAccepted', data: { success: true } };
+      return { type: 'voteAccepted', data: { success: true } };
     } catch (error) {
-      return { event: 'error', data: (error as Error).message };
+      return { type: 'error', data: (error as Error).message };
     }
   }
 }
