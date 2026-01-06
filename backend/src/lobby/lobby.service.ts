@@ -7,6 +7,13 @@ export interface Player {
   // Add more player info as needed (name, avatar, etc.)
 }
 
+export interface GameSettings {
+  maxPlayers: number;
+  imposterCount: number;
+  timeLimitEnabled: boolean;
+  timeLimitDuration: number; // in seconds
+}
+
 export interface Room {
   id: string;
   hostId: string;
@@ -16,6 +23,7 @@ export interface Room {
   word?: string;
   imposterId?: string;
   votes?: Record<string, string>; // voterId -> targetId
+  settings: GameSettings;
 }
 
 @Injectable()
@@ -30,6 +38,12 @@ export class LobbyService {
       players: [{ id: hostId, socketId: hostSocketId }],
       createdAt: new Date(),
       gameState: 'waiting',
+      settings: {
+        maxPlayers: 8,
+        imposterCount: 1,
+        timeLimitEnabled: false,
+        timeLimitDuration: 60,
+      },
     };
     this.rooms.set(roomId, newRoom);
     return newRoom;
@@ -162,5 +176,28 @@ export class LobbyService {
     }
 
     return { room };
+  }
+
+  updateSettings(
+    roomId: string,
+    hostId: string,
+    settings: Partial<GameSettings>,
+  ): Room {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new NotFoundException('Room not found');
+    if (room.hostId !== hostId)
+      throw new Error('Only host can update settings');
+
+    // Validation
+    const newSettings = { ...room.settings, ...settings };
+    if (newSettings.maxPlayers < 2)
+      throw new Error('Max players must be at least 2');
+    if (newSettings.imposterCount >= newSettings.maxPlayers)
+      throw new Error('Imposter count must be less than max players');
+    if (newSettings.timeLimitDuration < 10)
+      throw new Error('Time limit must be at least 10s');
+
+    room.settings = newSettings;
+    return room;
   }
 }
