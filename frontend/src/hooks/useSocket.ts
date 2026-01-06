@@ -1,30 +1,37 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL = 'http://localhost:4000';
 
+// Singleton instance
+let socket: Socket;
+
 export const useSocket = () => {
-    const socket: Socket = useMemo(() => {
-        return io(SOCKET_URL, {
+    if (!socket) {
+        socket = io(SOCKET_URL, {
             transports: ['websocket'],
-            withCredentials: true, // Important for cookies (JWT)
+            withCredentials: true,
             autoConnect: true,
         });
-    }, []);
+    }
 
     useEffect(() => {
-        socket.on('connect', () => {
-            console.log('Connected to WebSocket server');
-        });
-
-        socket.on('disconnect', () => {
-            console.log('Disconnected from WebSocket server');
-        });
+        if (!socket.connected) {
+            socket.on('connect', () => {
+                console.log('Connected to WebSocket server');
+            });
+            socket.on('disconnect', () => {
+                console.log('Disconnected from WebSocket server');
+            });
+        }
 
         return () => {
-            socket.disconnect();
+            // Do NOT disconnect on unmount to keep connection alive across pages
+            // OR manage it carefully. For now, keeping it alive is safer for this bug.
+            // If we really want to disconnect, we should do it in a layout or truly global context.
+            // socket.disconnect(); 
         };
-    }, [socket]);
+    }, []);
 
     return socket;
 };

@@ -1,7 +1,41 @@
-// Button import removed
-// Actually I don't have components yet. I will use raw tailwind.
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('http://localhost:4000/v1/users/me', {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          // If authorized, verify result is JSON and valid (optional but good)
+          // and redirect
+          router.push('/lobby');
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth check failed', error);
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-zinc-950 text-white">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-zinc-950 text-white">
       <h1 className="mb-8 text-4xl font-bold">Party Game</h1>
