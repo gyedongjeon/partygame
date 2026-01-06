@@ -122,4 +122,22 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { type: 'error', data: (error as Error).message };
     }
   }
+
+  @SubscribeMessage('updateSettings')
+  async handleUpdateSettings(
+    @MessageBody() data: { roomId: string; userId: string; settings: any },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const room = this.lobbyService.updateSettings(
+        data.roomId,
+        data.userId,
+        data.settings,
+      );
+      this.server.to(room.id).emit('settingsUpdated', room.settings);
+      return { type: 'settingsUpdated', data: { success: true } };
+    } catch (error) {
+      return { type: 'error', data: (error as Error).message };
+    }
+  }
 }

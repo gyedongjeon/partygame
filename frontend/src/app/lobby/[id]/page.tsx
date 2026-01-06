@@ -9,10 +9,18 @@ interface Player {
     socketId: string;
 }
 
+interface GameSettings {
+    maxPlayers: number;
+    imposterCount: number;
+    timeLimitEnabled: boolean;
+    timeLimitDuration: number;
+}
+
 interface Room {
     id: string;
     hostId: string;
     players: Player[];
+    settings: GameSettings;
 }
 
 export default function RoomPage() {
@@ -70,6 +78,10 @@ export default function RoomPage() {
             setImposterId(result.imposterId);
         });
 
+        socket.on('settingsUpdated', (newSettings: GameSettings) => {
+            setRoom((prev) => prev ? { ...prev, settings: newSettings } : null);
+        });
+
         // Join the room
         socket.emit('joinRoom', { roomId: id, userId }, (response: { event: string; data: Room | string }) => {
             if (response.event === 'error') {
@@ -88,6 +100,7 @@ export default function RoomPage() {
             socket.off('gameStarted');
             socket.off('voteAccepted');
             socket.off('gameEnded');
+            socket.off('settingsUpdated');
         };
     }, [socket, id, userId]); // Depend on userId so we join after it's loaded
 
@@ -99,6 +112,12 @@ export default function RoomPage() {
     const handleVote = (targetId: string) => {
         if (!userId) return;
         socket.emit('vote', { roomId: id, userId, targetId });
+    };
+
+    const handleUpdateSettings = (key: keyof GameSettings, value: number | boolean) => {
+        if (!room || !userId) return;
+        const newSettings = { ...room.settings, [key]: value };
+        socket.emit('updateSettings', { roomId: id, userId, settings: newSettings });
     };
 
     if (error) {
@@ -179,20 +198,92 @@ export default function RoomPage() {
     const isHost = room.hostId === userId;
 
     return (
-        <div className="flex h-screen w-full flex-col items-center bg-zinc-950 p-8 text-white">
+        <div className="flex min-h-screen w-full flex-col items-center bg-zinc-950 p-8 text-white">
             <h1 className="text-3xl font-bold text-white">Room: {room.id}</h1>
             <p className="mb-8 text-zinc-400">Host: {room.hostId}</p>
 
-            <div className="w-full max-w-md rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-                <h2 className="mb-4 text-xl font-semibold text-white">Players ({room.players.length})</h2>
-                <ul className="space-y-2">
-                    {room.players.map((p) => (
-                        <li key={p.socketId} className="flex items-center gap-2 rounded-md bg-zinc-800 p-2">
-                            <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                            <span className="text-sm text-zinc-300">{p.id === userId ? 'Me' : p.id} ({p.socketId.slice(0, 4)})</span>
-                        </li>
-                    ))}
-                </ul>
+            <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
+                {/* Players List */}
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+                    <h2 className="mb-4 text-xl font-semibold text-white">Players ({room.players.length})</h2>
+                    <ul className="space-y-2">
+                        {room.players.map((p) => (
+                            <li key={p.socketId} className="flex items-center gap-2 rounded-md bg-zinc-800 p-2">
+                                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                                <span className="text-sm text-zinc-300">{p.id === userId ? 'Me' : p.id} ({p.socketId.slice(0, 4)})</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                {/* Settings Panel */}
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+                    <h2 className="mb-4 text-xl font-semibold text-white">Game Settings</h2>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <label className="text-zinc-400">Max Players</label>
+                            {isHost ? (
+                                <input
+                                    type="number"
+                                    value={room.settings.maxPlayers}
+                                    onChange={(e) => handleUpdateSettings('maxPlayers', parseInt(e.target.value))}
+                                    className="w-20 rounded bg-zinc-800 p-1 text-right text-white"
+                                    min={2}
+                                    max={16}
+                                />
+                            ) : (
+                                <span className="text-white">{room.settings.maxPlayers}</span>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <label className="text-zinc-400">Imposters</label>
+                            {isHost ? (
+                                <input
+                                    type="number"
+                                    value={room.settings.imposterCount}
+                                    onChange={(e) => handleUpdateSettings('imposterCount', parseInt(e.target.value))}
+                                    className="w-20 rounded bg-zinc-800 p-1 text-right text-white"
+                                    min={1}
+                                    max={room.settings.maxPlayers - 1}
+                                />
+                            ) : (
+                                <span className="text-white">{room.settings.imposterCount}</span>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <label className="text-zinc-400">Time Limit</label>
+                            {isHost ? (
+                                <button
+                                    onClick={() => handleUpdateSettings('timeLimitEnabled', !room.settings.timeLimitEnabled)}
+                                    className={`px-3 py-1 rounded ${room.settings.timeLimitEnabled ? 'bg-green-600' : 'bg-red-600'}`}
+                                >
+                                    {room.settings.timeLimitEnabled ? 'ON' : 'OFF'}
+                                </button>
+                            ) : (
+                                <span className={room.settings.timeLimitEnabled ? 'text-green-500' : 'text-red-500'}>
+                                    {room.settings.timeLimitEnabled ? 'ON' : 'OFF'}
+                                </span>
+                            )}
+                        </div>
+                        {room.settings.timeLimitEnabled && (
+                            <div className="flex items-center justify-between">
+                                <label className="text-zinc-400">Duration (sec)</label>
+                                {isHost ? (
+                                    <input
+                                        type="number"
+                                        value={room.settings.timeLimitDuration}
+                                        onChange={(e) => handleUpdateSettings('timeLimitDuration', parseInt(e.target.value))}
+                                        className="w-20 rounded bg-zinc-800 p-1 text-right text-white"
+                                        min={10}
+                                        max={300}
+                                    />
+                                ) : (
+                                    <span className="text-white">{room.settings.timeLimitDuration}s</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="mt-8">
