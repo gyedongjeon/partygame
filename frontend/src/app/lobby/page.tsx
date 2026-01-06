@@ -79,7 +79,7 @@ export default function LobbyPage() {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-zinc-950 text-white">
             <h1 className="mb-8 text-4xl font-bold">Lobby</h1>
-            <p className="mb-4 text-zinc-400">Welcome, {userId}</p>
+            <p className="mb-4 text-zinc-400">Welcome, {userName || userId}</p>
 
             <div className="flex flex-col gap-4">
                 <button
