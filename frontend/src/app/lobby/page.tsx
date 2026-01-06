@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
 
@@ -8,16 +8,49 @@ export default function LobbyPage() {
     const router = useRouter();
     const socket = useSocket();
     const [joinRoomId, setJoinRoomId] = useState('');
+    const [userId, setUserId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Fetch current user
+        const fetchUser = async () => {
+            try {
+                const res = await fetch('http://localhost:4000/v1/users/me', { credentials: 'include' });
+                if (res.ok) {
+                    const user = await res.json();
+                    // Use googleId (or email as fallback) as the unique user ID
+                    const uid = user.googleId || user.email || `user_${Math.floor(Math.random() * 1000)}`;
+                    setUserId(uid);
+                    sessionStorage.setItem('userId', uid);
+                    setLoading(false);
+                } else {
+                    console.error('Failed to fetch user', res.status);
+                    router.push('/');
+                }
+            } catch (error) {
+                console.error('Auth error', error);
+                router.push('/');
+            }
+        };
+        fetchUser();
+    }, [router]);
 
     const handleCreateRoom = () => {
-        if (!socket) return;
-        const userId = `user_${Math.floor(Math.random() * 1000)}`;
-        // For MVP, user ID is just socket ID or we can fetch from API. 
-        // Sending dummy userId for now, backend will use socket ID mostly.
-        socket.emit('createRoom', { userId }, (response: { event: string; data: { id: string } }) => {
-            if (response.event === 'roomCreated') {
-                // Store userId in sessionStorage to reuse in RoomPage
-                sessionStorage.setItem('userId', userId);
+        console.log('[LobbyPage] handleCreateRoom clicked');
+
+        if (!socket) {
+            console.error('[LobbyPage] Socket is null/undefined');
+            return;
+        }
+        if (!userId) {
+            console.error('[LobbyPage] UserID is null/undefined');
+            return;
+        }
+
+        console.log('[LobbyPage] Emitting createRoom with userId:', userId);
+        socket.emit('createRoom', { userId }, (response: { type: string; data: { id: string } }) => {
+            console.log('[LobbyPage] createRoom response:', response);
+            if (response.type === 'roomCreated') {
                 router.push(`/lobby/${response.data.id}`);
             }
         });
@@ -25,17 +58,20 @@ export default function LobbyPage() {
 
     const handleJoinRoom = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!socket || !joinRoomId) return;
+        if (!socket || !joinRoomId || !userId) return;
 
-        const userId = `user_${Math.floor(Math.random() * 1000)}`;
-        sessionStorage.setItem('userId', userId);
         // We navigate first, the room page will handle the actual join event
         router.push(`/lobby/${joinRoomId}`);
     };
 
+    if (loading) {
+        return <div className="flex h-screen w-full items-center justify-center bg-zinc-950 text-white">Loading...</div>;
+    }
+
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-zinc-950 text-white">
             <h1 className="mb-8 text-4xl font-bold">Lobby</h1>
+            <p className="mb-4 text-zinc-400">Welcome, {userId}</p>
 
             <div className="flex flex-col gap-4">
                 <button
