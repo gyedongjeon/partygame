@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 export interface Player {
   id: string;
   socketId: string;
-  // Add more player info as needed (name, avatar, etc.)
+  name: string;
 }
 
 export interface GameSettings {
@@ -30,12 +30,12 @@ export interface Room {
 export class LobbyService {
   private rooms: Map<string, Room> = new Map();
 
-  createRoom(hostId: string, hostSocketId: string): Room {
+  createRoom(hostId: string, hostSocketId: string, hostName: string): Room {
     const roomId = uuidv4().slice(0, 6).toUpperCase(); // Short ID for easy sharing
     const newRoom: Room = {
       id: roomId,
       hostId,
-      players: [{ id: hostId, socketId: hostSocketId }],
+      players: [{ id: hostId, socketId: hostSocketId, name: hostName }],
       createdAt: new Date(),
       gameState: 'waiting',
       settings: {
@@ -49,7 +49,12 @@ export class LobbyService {
     return newRoom;
   }
 
-  joinRoom(roomId: string, playerId: string, socketId: string): Room {
+  joinRoom(
+    roomId: string,
+    playerId: string,
+    socketId: string,
+    playerName: string,
+  ): Room {
     const room = this.rooms.get(roomId);
     if (!room) {
       throw new NotFoundException('Room not found');
@@ -58,10 +63,11 @@ export class LobbyService {
     // Prevent duplicate join
     const existingPlayer = room.players.find((p) => p.id === playerId);
     if (!existingPlayer) {
-      room.players.push({ id: playerId, socketId });
+      room.players.push({ id: playerId, socketId, name: playerName });
     } else {
-      // Update socket ID on reconnect
+      // Update socket ID and Name on reconnect
       existingPlayer.socketId = socketId;
+      existingPlayer.name = playerName;
     }
 
     return room;

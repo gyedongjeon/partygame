@@ -32,14 +32,18 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('createRoom')
   async handleCreateRoom(
-    @MessageBody() data: { userId: string },
+    @MessageBody() data: { userId: string; name: string },
     @ConnectedSocket() client: Socket,
   ) {
     console.log(
       `[createRoom] Request from ${data.userId} (socket: ${client.id})`,
     );
     try {
-      const room = this.lobbyService.createRoom(data.userId, client.id);
+      const room = this.lobbyService.createRoom(
+        data.userId,
+        client.id,
+        data.name,
+      );
       await client.join(room.id);
       console.log(`[createRoom] Room created: ${room.id}`);
       return { type: 'roomCreated', data: { id: room.id } };
@@ -51,7 +55,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
-    @MessageBody() data: { roomId: string; userId: string },
+    @MessageBody() data: { roomId: string; userId: string; name: string },
     @ConnectedSocket() client: Socket,
   ) {
     try {
@@ -59,6 +63,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.roomId,
         data.userId,
         client.id,
+        data.name,
       );
       await client.join(room.id);
       this.server.to(room.id).emit('playerJoined', room);

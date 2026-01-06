@@ -9,6 +9,7 @@ export default function LobbyPage() {
     const socket = useSocket();
     const [joinRoomId, setJoinRoomId] = useState('');
     const [userId, setUserId] = useState<string | null>(null);
+    const [userName, setUserName] = useState<string>('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -20,7 +21,10 @@ export default function LobbyPage() {
                     const user = await res.json();
                     // Use googleId (or email as fallback) as the unique user ID
                     const uid = user.googleId || user.email || `user_${Math.floor(Math.random() * 1000)}`;
+                    const name = user.displayName || user.email?.split('@')[0] || `User_${Math.floor(Math.random() * 1000)}`;
+
                     setUserId(uid);
+                    setUserName(name);
                     sessionStorage.setItem('userId', uid);
                     setLoading(false);
                 } else {
@@ -46,9 +50,13 @@ export default function LobbyPage() {
             console.error('[LobbyPage] UserID is null/undefined');
             return;
         }
+        if (!userName) {
+            console.error('[LobbyPage] UserName is null/undefined');
+            return;
+        }
 
-        console.log('[LobbyPage] Emitting createRoom with userId:', userId);
-        socket.emit('createRoom', { userId }, (response: { type: string; data: { id: string } }) => {
+        console.log('[LobbyPage] Emitting createRoom with userId:', userId, 'name:', userName);
+        socket.emit('createRoom', { userId, name: userName }, (response: { type: string; data: { id: string } }) => {
             console.log('[LobbyPage] createRoom response:', response);
             if (response.type === 'roomCreated') {
                 router.push(`/lobby/${response.data.id}`);
