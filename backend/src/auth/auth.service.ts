@@ -1,32 +1,38 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        private usersService: UsersService,
-        private jwtService: JwtService,
-    ) { }
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+  ) {}
 
-    async validateOAuthLogin(details: { email: string; displayName: string; googleId: string; avatarUrl: string }) {
-        try {
-            const user = await this.usersService.findByEmail(details.email);
-            if (user) {
-                // Update user info if needed? For now just return
-                return user;
-            }
-            // Create new user
-            return this.usersService.create(details);
-        } catch (error) {
-            throw new InternalServerErrorException('validateOAuthLogin', error.message);
-        }
+  async validateOAuthLogin(profile: Partial<User>): Promise<User> {
+    try {
+      if (!profile.email) {
+        throw new Error('Email not provided from Google');
+      }
+      const user = await this.usersService.findByEmail(profile.email);
+      if (user) {
+        return user;
+      }
+      // Create new user
+      return this.usersService.create(profile);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'validateOAuthLogin',
+        (error as Error).message,
+      );
     }
+  }
 
-    async login(user: any) {
-        const payload = { email: user.email, sub: user.id };
-        return {
-            access_token: this.jwtService.sign(payload),
-        };
-    }
+  login(user: User) {
+    const payload = { email: user.email, sub: user.id };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
 }
