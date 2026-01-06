@@ -19,7 +19,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly lobbyService: LobbyService) { }
+  constructor(private readonly lobbyService: LobbyService) {}
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -74,17 +74,16 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('startGame')
-  async handleStartGame(
-    @MessageBody() data: { roomId: string; userId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
+  handleStartGame(@MessageBody() data: { roomId: string; userId: string }) {
     try {
       const room = this.lobbyService.startGame(data.roomId, data.userId);
 
       // Notify each player individually
       room.players.forEach((player) => {
         const isImposter = player.id === room.imposterId;
-        const secret = isImposter ? 'YOU ARE THE IMPOSTER' : `Secret Word: ${room.word}`;
+        const secret = isImposter
+          ? 'YOU ARE THE IMPOSTER'
+          : `Secret Word: ${room.word}`;
         this.server.to(player.socketId).emit('gameStarted', {
           gameState: room.gameState,
           role: isImposter ? 'imposter' : 'civilian',
@@ -93,6 +92,27 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       return { event: 'gameStarted', data: { success: true } };
+    } catch (error) {
+      return { event: 'error', data: (error as Error).message };
+    }
+  }
+
+  @SubscribeMessage('vote')
+  handleVote(
+    @MessageBody() data: { roomId: string; userId: string; targetId: string },
+  ) {
+    try {
+      const { room, result } = this.lobbyService.vote(
+        data.roomId,
+        data.userId,
+        data.targetId,
+      );
+
+      if (result) {
+        this.server.to(room.id).emit('gameEnded', result);
+      }
+
+      return { event: 'voteAccepted', data: { success: true } };
     } catch (error) {
       return { event: 'error', data: (error as Error).message };
     }
