@@ -8,7 +8,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { LobbyService } from './lobby.service';
+import { GameSettings, LobbyService } from './lobby.service';
 
 @WebSocketGateway({
   cors: {
@@ -20,7 +20,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly lobbyService: LobbyService) { }
+  constructor(private readonly lobbyService: LobbyService) {}
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -35,7 +35,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { userId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    console.log(`[createRoom] Request from ${data.userId} (socket: ${client.id})`);
+    console.log(
+      `[createRoom] Request from ${data.userId} (socket: ${client.id})`,
+    );
     try {
       const room = this.lobbyService.createRoom(data.userId, client.id);
       await client.join(room.id);
@@ -124,9 +126,13 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('updateSettings')
-  async handleUpdateSettings(
-    @MessageBody() data: { roomId: string; userId: string; settings: any },
-    @ConnectedSocket() client: Socket,
+  handleUpdateSettings(
+    @MessageBody()
+    data: {
+      roomId: string;
+      userId: string;
+      settings: Partial<GameSettings>;
+    },
   ) {
     try {
       const room = this.lobbyService.updateSettings(
