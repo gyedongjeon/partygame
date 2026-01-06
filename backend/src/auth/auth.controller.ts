@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
@@ -44,5 +44,18 @@ export class AuthController {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
     const redirectUrl = frontendUrl || 'http://localhost:3000';
     res.redirect(redirectUrl);
+  }
+
+  @ApiOperation({ summary: 'Logout user' })
+  @ApiResponse({ status: 200, description: 'Logs out user and clears cookie' })
+  @UseGuards(AuthGuard('jwt'))
+  @Post('logout')
+  logout(@Res() res: Response) {
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+    return res.status(200).json({ message: 'Logged out successfully' });
   }
 }
