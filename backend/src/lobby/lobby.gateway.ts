@@ -19,7 +19,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly lobbyService: LobbyService) {}
+  constructor(private readonly lobbyService: LobbyService) { }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -71,5 +71,30 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(room.id).emit('playerLeft', room);
     }
     return { event: 'leftRoom', data: { roomId: data.roomId } };
+  }
+
+  @SubscribeMessage('startGame')
+  async handleStartGame(
+    @MessageBody() data: { roomId: string; userId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const room = this.lobbyService.startGame(data.roomId, data.userId);
+
+      // Notify each player individually
+      room.players.forEach((player) => {
+        const isImposter = player.id === room.imposterId;
+        const secret = isImposter ? 'YOU ARE THE IMPOSTER' : `Secret Word: ${room.word}`;
+        this.server.to(player.socketId).emit('gameStarted', {
+          gameState: room.gameState,
+          role: isImposter ? 'imposter' : 'civilian',
+          secret,
+        });
+      });
+
+      return { event: 'gameStarted', data: { success: true } };
+    } catch (error) {
+      return { event: 'error', data: (error as Error).message };
+    }
   }
 }
