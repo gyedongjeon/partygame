@@ -14,7 +14,7 @@ export default function LobbyPage() {
         const userId = `user_${Math.floor(Math.random() * 1000)}`;
         // For MVP, user ID is just socket ID or we can fetch from API. 
         // Sending dummy userId for now, backend will use socket ID mostly.
-        socket.emit('createRoom', { userId }, (response: any) => {
+        socket.emit('createRoom', { userId }, (response: { event: string; data: { id: string } }) => {
             if (response.event === 'roomCreated') {
                 // Store userId in sessionStorage to reuse in RoomPage
                 sessionStorage.setItem('userId', userId);

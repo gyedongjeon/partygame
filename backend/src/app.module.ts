@@ -27,8 +27,9 @@ import { LobbyModule } from './lobby/lobby.module';
         synchronize: true, // Only for development
       }),
     }),
-    UsersModule, 
-    AuthModule, LobbyModule
+    UsersModule,
+    AuthModule,
+    LobbyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -19,7 +19,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly lobbyService: LobbyService) { }
+  constructor(private readonly lobbyService: LobbyService) {}
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -32,37 +32,41 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('createRoom')
-  handleCreateRoom(
+  async handleCreateRoom(
     @MessageBody() data: { userId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const room = this.lobbyService.createRoom(data.userId, client.id);
-    client.join(room.id);
+    await client.join(room.id);
     return { event: 'roomCreated', data: room };
   }
 
   @SubscribeMessage('joinRoom')
-  handleJoinRoom(
+  async handleJoinRoom(
     @MessageBody() data: { roomId: string; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const room = this.lobbyService.joinRoom(data.roomId, data.userId, client.id);
-      client.join(room.id);
+      const room = this.lobbyService.joinRoom(
+        data.roomId,
+        data.userId,
+        client.id,
+      );
+      await client.join(room.id);
       this.server.to(room.id).emit('playerJoined', room);
       return { event: 'roomJoined', data: room };
     } catch (error) {
-      return { event: 'error', data: error.message };
+      return { event: 'error', data: (error as Error).message };
     }
   }
 
   @SubscribeMessage('leaveRoom')
-  handleLeaveRoom(
+  async handleLeaveRoom(
     @MessageBody() data: { roomId: string; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const room = this.lobbyService.leaveRoom(data.roomId, data.userId);
-    client.leave(data.roomId);
+    await client.leave(data.roomId);
     if (room) {
       this.server.to(room.id).emit('playerLeft', room);
     }
