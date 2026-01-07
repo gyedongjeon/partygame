@@ -26,7 +26,8 @@ import { LobbyModule } from './lobby/lobby.module';
         entities: [User],
         synchronize: true, // Only for development
         ssl:
-          configService.get<string>('DATABASE_SSL') === 'true'
+          configService.get<string>('DATABASE_SSL') === 'true' ||
+            configService.get<string>('NODE_ENV') === 'production'
             ? { rejectUnauthorized: false }
             : false,
       }),
