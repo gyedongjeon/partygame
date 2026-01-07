@@ -6,34 +6,35 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      (process.env.FRONTEND_URL || '').replace(/\/$/, ''), // Remove trailing slash
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  app.enableCors({
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        (process.env.FRONTEND_URL || '').replace(/\/$/, ''), // Remove trailing slash
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
-app.use(cookieParser());
-// app.setGlobalPrefix('api'); // Removed in favor of versioning
-app.enableVersioning({
-  type: VersioningType.URI,
-  defaultVersion: '1',
-});
+  app.use(cookieParser());
+  // app.setGlobalPrefix('api'); // Removed in favor of versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
 
-const config = new DocumentBuilder()
-  .setTitle('Party Game API')
-  .setDescription('The Party Game API description')
-  .setVersion('1.0')
-  .addCookieAuth('access_token')
-  .build();
-const document = SwaggerModule.createDocument(app, config);
-SwaggerModule.setup('docs', app, document);
-await app.listen(process.env.PORT ?? 4000);
+  const config = new DocumentBuilder()
+    .setTitle('Party Game API')
+    .setDescription('The Party Game API description')
+    .setVersion('1.0')
+    .addCookieAuth('access_token')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
+  await app.listen(process.env.PORT ?? 4000);
 }
 void bootstrap();
