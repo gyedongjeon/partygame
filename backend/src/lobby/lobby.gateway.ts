@@ -12,7 +12,22 @@ import { GameSettings, LobbyService } from './lobby.service';
 
 @WebSocketGateway({
   cors: {
-    origin: 'http://localhost:3000',
+    origin: (origin: string, callback: (err: Error | null, origin?: boolean) => void) => {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        (process.env.FRONTEND_URL || '').replace(/\/$/, ''),
+        ...(process.env.CORS_ORIGINS || '').split(',').map(url => url.trim()),
+      ].filter(Boolean);
+
+      const isVercelPreview = origin && origin.endsWith('.vercel.app');
+
+      if (!origin || allowedOrigins.includes(origin) || isVercelPreview) {
+        callback(null, true);
+      } else {
+        console.warn(`[LobbyGateway] Blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   },
 })
