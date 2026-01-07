@@ -20,7 +20,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly lobbyService: LobbyService) {}
+  constructor(private readonly lobbyService: LobbyService) { }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -89,7 +89,18 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('startGame')
   handleStartGame(@MessageBody() data: { roomId: string; userId: string }) {
     try {
-      const room = this.lobbyService.startGame(data.roomId, data.userId);
+      const room = this.lobbyService.startGame(
+        data.roomId,
+        data.userId,
+        (timeoutRoomId) => {
+          // Callback when time expires
+          const { room: updatedRoom, result } =
+            this.lobbyService.handleGameTimeout(timeoutRoomId);
+          if (updatedRoom && result) {
+            this.server.to(updatedRoom.id).emit('gameEnded', result);
+          }
+        },
+      );
 
       room.players.forEach((player) => {
         const isImposter = player.id === room.imposterId;
@@ -100,6 +111,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
           gameState: room.gameState,
           role: isImposter ? 'imposter' : 'civilian',
           secret,
+          endTime: room.endTime, // Send endTime to clients
         });
       });
 

@@ -55,6 +55,28 @@ export default function RoomPage() {
             .catch(() => setUserName('Guest'));
     }, []);
 
+    const [endTime, setEndTime] = useState<number | undefined>(undefined);
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!endTime) {
+            setTimeLeft(null);
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+            setTimeLeft(remaining);
+
+            if (remaining <= 0) {
+                clearInterval(interval);
+            }
+        }, 500); // Check every 500ms for smoothness
+
+        return () => clearInterval(interval);
+    }, [endTime]);
+
     useEffect(() => {
         if (!socket) return;
         if (!userId) return; // Wait for userId to be loaded
@@ -70,11 +92,12 @@ export default function RoomPage() {
             setRoom(updatedRoom);
         });
 
-        socket.on('gameStarted', (data: { gameState: 'playing'; role: 'imposter' | 'civilian'; secret: string }) => {
+        socket.on('gameStarted', (data: { gameState: 'playing'; role: 'imposter' | 'civilian'; secret: string; endTime?: number }) => {
             console.log("Game Started", data);
             setGameState(data.gameState);
             setRole(data.role);
             setSecret(data.secret);
+            setEndTime(data.endTime);
             setHasVoted(false); // Reset voting
             setWinner(null);
         });
@@ -182,6 +205,11 @@ export default function RoomPage() {
                     <div className="text-3xl font-mono bg-black p-4 rounded-md border border-zinc-700">
                         {secret}
                     </div>
+                    {timeLeft !== null && (
+                        <div className={`mt-4 text-2xl font-bold font-mono ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-400'}`}>
+                            ⏱ {timeLeft}s
+                        </div>
+                    )}
                 </div>
 
                 <div className="w-full max-w-md">

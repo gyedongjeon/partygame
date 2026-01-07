@@ -24,6 +24,7 @@ export interface Room {
     imposterId?: string;
     votes?: Record<string, string>; // voterId -> targetId
     settings: GameSettings;
+    endTime?: number; // Timestamp in ms
 }
 
 @Injectable()
@@ -126,7 +127,22 @@ export class LobbyService {
         'Pizza',
     ];
 
-    startGame(roomId: string, playerId: string): Room {
+    handleGameTimeout(roomId: string): { room: Room | null; result?: { winner: 'imposter' | 'civilians'; imposterId: string } } {
+        const room = this.rooms.get(roomId);
+        if (room && room.gameState === 'playing') {
+            room.gameState = 'finished';
+            return {
+                room,
+                result: {
+                    winner: 'imposter' as const,
+                    imposterId: room.imposterId!,
+                },
+            };
+        }
+        return { room: null };
+    }
+
+    startGame(roomId: string, playerId: string, onTimeout?: (roomId: string) => void): Room {
         const room = this.rooms.get(roomId);
         if (!room) {
             throw new NotFoundException('Room not found');
@@ -143,6 +159,17 @@ export class LobbyService {
         const imposterIndex = Math.floor(Math.random() * room.players.length);
         room.imposterId = room.players[imposterIndex].id;
         room.votes = {};
+
+        if (room.settings.timeLimitEnabled) {
+            const durationMs = room.settings.timeLimitDuration * 1000;
+            room.endTime = Date.now() + durationMs;
+
+            if (onTimeout) {
+                setTimeout(() => onTimeout(roomId), durationMs);
+            }
+        } else {
+            delete room.endTime;
+        }
 
         return room;
     }
