@@ -14,7 +14,11 @@ async function bootstrap() {
         'http://localhost:3000',
         (process.env.FRONTEND_URL || '').replace(/\/$/, ''), // Remove trailing slash
       ];
-      if (!origin || allowedOrigins.includes(origin)) {
+
+      // Allow Vercel preview URLs dynamically
+      const isVercelPreview = origin && origin.endsWith('.vercel.app');
+
+      if (!origin || allowedOrigins.includes(origin) || isVercelPreview) {
         callback(null, true);
       } else {
         console.warn(`[CORS] Blocked origin: ${origin}. Allowed: ${JSON.stringify(allowedOrigins)}`);
