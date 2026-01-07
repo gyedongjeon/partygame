@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu as MenuIcon, LogOut, User } from 'lucide-react';
 
+import { authFetch } from '../utils/auth';
+
 export default function Menu() {
     const [isOpen, setIsOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -27,23 +29,23 @@ export default function Menu() {
 
     useEffect(() => {
         // Fetch current profile
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, { credentials: 'include' })
+        authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`)
             .then(res => res.json())
             .then(data => setDisplayName(data.displayName || ''));
     }, []);
 
     const handleLogout = async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/auth/logout`, {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/auth/logout`, {
                 method: 'POST',
-                credentials: 'include',
             });
 
             if (res.ok) {
                 // Clear local session logic if any
+                document.cookie = 'auth_token=; Max-Age=0; path=/'; // Clear client cookie
                 sessionStorage.removeItem('userId');
                 router.push('/');
-                router.refresh(); // Refresh to clear any server-side cached states if existing
+                router.refresh();
             } else {
                 console.error('Logout failed');
             }
@@ -54,11 +56,10 @@ export default function Menu() {
 
     const handleSaveProfile = async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ displayName }),
-                credentials: 'include',
             });
             if (res.ok) {
                 setIsProfileOpen(false);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { authFetch } from '../utils/auth';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -10,9 +11,7 @@ export default function Home() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
-          credentials: 'include',
-        });
+        const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`);
         if (res.ok) {
           // If authorized, verify result is JSON and valid (optional but good)
           // and redirect
