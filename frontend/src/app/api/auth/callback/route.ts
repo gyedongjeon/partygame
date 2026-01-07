@@ -1,27 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-// We do NOT use 'cookies' from 'next/headers' here directly to set it in response,
-// we use NextResponse.cookies.set() which is the App Router way for Route Handlers.
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
-    const token = searchParams.get('token');
+    const code = searchParams.get('code');
 
-    if (!token) {
-        return NextResponse.json({ error: 'Token missing' }, { status: 400 });
+    if (!code) {
+        return NextResponse.json({ error: 'Code missing' }, { status: 400 });
     }
 
-    // Redirect to home page
-    const response = NextResponse.redirect(new URL('/', request.url));
+    // Exchange the one-time code for the JWT via backend API
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-    // Set the cookie on the response
-    // First-Party Cookie!
-    response.cookies.set('access_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Secure in prod
-        sameSite: 'lax', // Lax is fine for first-party navigation (and needed for OAuth redirect sometimes)
-        path: '/',
-        maxAge: 24 * 60 * 60, // 1 day (matches backend expiry)
-    });
+    try {
+        const exchangeResponse = await fetch(`${backendUrl}/v1/auth/exchange`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+        });
 
-    return response;
+        if (!exchangeResponse.ok) {
+            const errorData = await exchangeResponse.json();
+            return NextResponse.json(
+                { error: errorData.message || 'Code exchange failed' },
+                { status: exchangeResponse.status }
+            );
+        }
+
+        const { access_token } = await exchangeResponse.json();
+
+        // Redirect to home page
+        const response = NextResponse.redirect(new URL('/', request.url));
+
+        // Set the cookie on the response (First-Party Cookie!)
+        response.cookies.set('access_token', access_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 24 * 60 * 60, // 1 day
+        });
+
+        return response;
+    } catch (error) {
+        console.error('Code exchange error:', error);
+        return NextResponse.json(
+            { error: 'Failed to exchange code' },
+            { status: 500 }
+        );
+    }
 }
