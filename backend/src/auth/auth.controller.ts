@@ -33,15 +33,21 @@ export class AuthController {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const { access_token } = this.authService.login(user);
 
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    // Robust check: Production if NODE_ENV is production OR if frontend uses HTTPS
+    const isProduction =
+      process.env.NODE_ENV === 'production' ||
+      (frontendUrl && frontendUrl.startsWith('https'));
+
     // Set HttpOnly Cookie
     res.cookie('access_token', access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
     const redirectUrl = frontendUrl || 'http://localhost:3000';
     res.redirect(redirectUrl);
   }
@@ -51,10 +57,15 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   logout(@Res() res: Response) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const isProduction =
+      process.env.NODE_ENV === 'production' ||
+      (frontendUrl && frontendUrl.startsWith('https'));
+
     res.clearCookie('access_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
     });
     return res.status(200).json({ message: 'Logged out successfully' });
   }
