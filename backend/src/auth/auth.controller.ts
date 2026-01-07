@@ -35,20 +35,12 @@ export class AuthController {
 
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
 
-    // Robust check: Production if NODE_ENV is production OR if frontend uses HTTPS
-    const isProduction =
-      process.env.NODE_ENV === 'production' ||
-      (Boolean(frontendUrl) && (frontendUrl as string).startsWith('https'));
+    const redirectBase = frontendUrl || 'http://localhost:3000';
+    // Redirect to Frontend API Route for "Token Handover" (First-Party Cookie setting)
+    const redirectUrl = `${redirectBase}/api/auth/callback?token=${access_token}`;
 
-    // Set HttpOnly Cookie
-    res.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
-
-    const redirectUrl = frontendUrl || 'http://localhost:3000';
+    // We strictly use redirect now, no server-side Set-Cookie header on this response
+    // to avoid Third-Party Cookie blocking issues on Firefox/Safari/Mobile.
     res.redirect(redirectUrl);
   }
 
