@@ -52,9 +52,18 @@ export async function GET(request: NextRequest) {
         response.cookies.set('access_token', access_token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: 'none', // Changed to none for cross-domain support
             path: '/',
             maxAge: 24 * 60 * 60, // 1 day
+        });
+
+        // Set a public cookie for JS access (Socket.io/Client-side fetch)
+        response.cookies.set('auth_token', access_token, {
+            httpOnly: false, // JS can read this
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax', // Lax is fine for this as it's read by client JS
+            path: '/',
+            maxAge: 24 * 60 * 60,
         });
 
         return response;
