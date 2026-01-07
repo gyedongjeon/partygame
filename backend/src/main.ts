@@ -13,7 +13,8 @@ async function bootstrap() {
       const allowedOrigins = [
         'http://localhost:3000',
         (process.env.FRONTEND_URL || '').replace(/\/$/, ''), // Remove trailing slash
-      ];
+        ...(process.env.CORS_ORIGINS || '').split(',').map(url => url.trim()),
+      ].filter(Boolean);
 
       // Allow Vercel preview URLs dynamically
       const isVercelPreview = origin && origin.endsWith('.vercel.app');
