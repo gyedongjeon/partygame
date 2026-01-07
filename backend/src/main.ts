@@ -7,7 +7,17 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin: string, callback: (err: Error | null, origin?: boolean) => void) => {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        (process.env.FRONTEND_URL || '').replace(/\/$/, ''), // Remove trailing slash
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
   app.use(cookieParser());
