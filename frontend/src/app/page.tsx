@@ -10,7 +10,7 @@ export default function Home() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('http://localhost:4000/v1/users/me', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
           credentials: 'include',
         });
         if (res.ok) {
@@ -42,7 +42,7 @@ export default function Home() {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-8 shadow-xl">
         <p className="mb-6 text-center text-zinc-400">Sign in to start playing</p>
         <a
-          href="http://localhost:4000/v1/auth/google"
+          href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/auth/google`}
           className="flex items-center gap-3 rounded-md bg-white px-6 py-3 font-semibold text-black transition-transform hover:scale-105 active:scale-95"
         >
           {/* Simple Google Icon SVG */}
