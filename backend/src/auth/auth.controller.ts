@@ -60,13 +60,13 @@ export class AuthController {
   @Post('logout')
   logout(@Res() res: Response) {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    const isProduction =
-      process.env.NODE_ENV === 'production' ||
-      (Boolean(frontendUrl) && (frontendUrl as string).startsWith('https'));
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    const isHttps = frontendUrl?.startsWith('https') ?? false;
+    const isProduction = nodeEnv === 'production';
 
     res.clearCookie('access_token', {
       httpOnly: true,
-      secure: isProduction,
+      secure: isProduction || isHttps,
       sameSite: isProduction ? 'none' : 'lax',
     });
     return res.status(200).json({ message: 'Logged out successfully' });
