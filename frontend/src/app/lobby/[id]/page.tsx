@@ -47,7 +47,7 @@ export default function RoomPage() {
         setUserId(storedUserId);
 
         // Fetch current profile name
-        fetch('http://localhost:4000/v1/users/me', { credentials: 'include' })
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 setUserName(data.displayName || data.email?.split('@')[0] || 'Guest');
