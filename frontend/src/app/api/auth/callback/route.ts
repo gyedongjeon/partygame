@@ -10,23 +10,40 @@ export async function GET(request: NextRequest) {
 
     // Exchange the one-time code for the JWT via backend API
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    console.log('[AuthDebug] Exchange started. Code:', code ? '***' : 'missing');
+    console.log('[AuthDebug] Backend URL:', backendUrl);
 
     try {
-        const exchangeResponse = await fetch(`${backendUrl}/v1/auth/exchange`, {
+        const fullUrl = `${backendUrl}/v1/auth/exchange`;
+        console.log('[AuthDebug] Fetching:', fullUrl);
+
+        const exchangeResponse = await fetch(fullUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code }),
         });
 
+        console.log('[AuthDebug] Response status:', exchangeResponse.status);
+
         if (!exchangeResponse.ok) {
-            const errorData = await exchangeResponse.json();
+            const errorText = await exchangeResponse.text();
+            console.error('[AuthDebug] Exchange failed body:', errorText);
+
+            // Try to parse JSON if possible catch for better error message
+            let errorMessage = 'Code exchange failed';
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.message || errorMessage;
+            } catch (e) { /* ignore json parse error */ }
+
             return NextResponse.json(
-                { error: errorData.message || 'Code exchange failed' },
+                { error: errorMessage },
                 { status: exchangeResponse.status }
             );
         }
 
         const { access_token } = await exchangeResponse.json();
+        console.log('[AuthDebug] Exchange success. Token received.');
 
         // Redirect to home page
         const response = NextResponse.redirect(new URL('/', request.url));
@@ -42,7 +59,7 @@ export async function GET(request: NextRequest) {
 
         return response;
     } catch (error) {
-        console.error('Code exchange error:', error);
+        console.error('[AuthDebug] Critical error:', error);
         return NextResponse.json(
             { error: 'Failed to exchange code' },
             { status: 500 }
