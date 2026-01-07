@@ -10,9 +10,25 @@ export default function Home() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Read auth_token from document.cookie
+        const getCookie = (name: string) => {
+          const value = `; ${document.cookie}`;
+          const parts = value.split(`; ${name}=`);
+          if (parts.length === 2) return parts.pop()?.split(';').shift();
+          return null;
+        };
+
+        const token = getCookie('auth_token');
+        const headers: HeadersInit = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
           credentials: 'include',
+          headers,
         });
+
         if (res.ok) {
           // If authorized, verify result is JSON and valid (optional but good)
           // and redirect
