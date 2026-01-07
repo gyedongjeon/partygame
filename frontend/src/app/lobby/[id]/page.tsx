@@ -55,6 +55,29 @@ export default function RoomPage() {
             .catch(() => setUserName('Guest'));
     }, []);
 
+    const [endTime, setEndTime] = useState<number | undefined>(undefined);
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!endTime) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setTimeLeft(null);
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+            setTimeLeft(remaining);
+
+            if (remaining <= 0) {
+                clearInterval(interval);
+            }
+        }, 500); // Check every 500ms for smoothness
+
+        return () => clearInterval(interval);
+    }, [endTime]);
+
     useEffect(() => {
         if (!socket) return;
         if (!userId) return; // Wait for userId to be loaded
@@ -70,11 +93,12 @@ export default function RoomPage() {
             setRoom(updatedRoom);
         });
 
-        socket.on('gameStarted', (data: { gameState: 'playing'; role: 'imposter' | 'civilian'; secret: string }) => {
+        socket.on('gameStarted', (data: { gameState: 'playing'; role: 'imposter' | 'civilian'; secret: string; endTime?: number }) => {
             console.log("Game Started", data);
             setGameState(data.gameState);
             setRole(data.role);
             setSecret(data.secret);
+            setEndTime(data.endTime);
             setHasVoted(false); // Reset voting
             setWinner(null);
         });
@@ -156,7 +180,9 @@ export default function RoomPage() {
                 <h1 className="text-4xl font-bold text-yellow-500 mb-8">GAME OVER</h1>
                 <div className="bg-zinc-900 p-8 rounded-lg border border-zinc-800 text-center">
                     <h2 className="text-2xl mb-4">Winner: <span className={winner === 'imposter' ? 'text-red-500' : 'text-blue-500'}>{winner?.toUpperCase()}</span></h2>
-                    <p className="text-xl">The Imposter was: <span className="font-bold">{imposterId}</span></p>
+                    <p className="text-xl">The Imposter was: <span className="font-bold">
+                        {room?.players.find(p => p.id === imposterId)?.name || 'Unknown'}
+                    </span></p>
 
                     {room.hostId === userId && (
                         <button
@@ -180,6 +206,15 @@ export default function RoomPage() {
                     <div className="text-3xl font-mono bg-black p-4 rounded-md border border-zinc-700">
                         {secret}
                     </div>
+                    {timeLeft !== null ? (
+                        <div className={`mt-4 text-2xl font-bold font-mono ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-400'}`}>
+                            ⏱ {timeLeft}s
+                        </div>
+                    ) : endTime ? (
+                        <div className="mt-4 text-xl text-yellow-500">Loading timer...</div>
+                    ) : (
+                        <div className="mt-4 text-sm text-zinc-600">(No time limit set)</div>
+                    )}
                 </div>
 
                 <div className="w-full max-w-md">
@@ -190,7 +225,7 @@ export default function RoomPage() {
                         <ul className="space-y-2">
                             {room.players.filter(p => p.id !== userId).map((p) => (
                                 <li key={p.socketId} className="flex items-center justify-between gap-2 rounded-md bg-zinc-800 p-3">
-                                    <span className="text-zinc-300">{p.id}</span>
+                                    <span className="text-zinc-300">{p.name}</span>
                                     <button
                                         onClick={() => handleVote(p.id)}
                                         className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold"

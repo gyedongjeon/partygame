@@ -20,7 +20,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly lobbyService: LobbyService) {}
+  constructor(private readonly lobbyService: LobbyService) { }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -89,17 +89,36 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('startGame')
   handleStartGame(@MessageBody() data: { roomId: string; userId: string }) {
     try {
-      const room = this.lobbyService.startGame(data.roomId, data.userId);
+      const room = this.lobbyService.startGame(
+        data.roomId,
+        data.userId,
+        (timeoutRoomId) => {
+          // Callback when time expires
+          const { room: updatedRoom, result } =
+            this.lobbyService.handleGameTimeout(timeoutRoomId);
+          if (updatedRoom && result) {
+            this.server.to(updatedRoom.id).emit('gameEnded', result);
+          }
+        },
+      );
 
       room.players.forEach((player) => {
         const isImposter = player.id === room.imposterId;
         const secret = isImposter
           ? 'YOU ARE THE IMPOSTER'
           : `Secret Word: ${room.word}`;
+
+        console.log('[startGame] Sending to player:', player.id, {
+          timeLimitEnabled: room.settings.timeLimitEnabled,
+          timeLimitDuration: room.settings.timeLimitDuration,
+          endTime: room.endTime,
+        });
+
         this.server.to(player.socketId).emit('gameStarted', {
           gameState: room.gameState,
           role: isImposter ? 'imposter' : 'civilian',
           secret,
+          endTime: room.endTime, // Send endTime to clients
         });
       });
 
@@ -112,6 +131,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('vote')
   handleVote(
     @MessageBody() data: { roomId: string; userId: string; targetId: string },
+    @ConnectedSocket() client: Socket,
   ) {
     try {
       const { room, result } = this.lobbyService.vote(
@@ -119,6 +139,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.userId,
         data.targetId,
       );
+
+      // Emit voteAccepted to the voter
+      client.emit('voteAccepted');
 
       if (result) {
         this.server.to(room.id).emit('gameEnded', result);
