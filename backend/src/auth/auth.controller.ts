@@ -37,7 +37,10 @@ export class AuthController {
     const code = this.authService.generateCode(access_token);
 
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    const redirectBase = frontendUrl || 'http://localhost:3000';
+    let redirectBase = frontendUrl || 'http://localhost:3000';
+    if (!redirectBase.startsWith('http')) {
+      redirectBase = `https://${redirectBase}`;
+    }
     // Redirect with one-time code (NOT the JWT)
     const redirectUrl = `${redirectBase}/api/auth/callback?code=${code}`;
 
