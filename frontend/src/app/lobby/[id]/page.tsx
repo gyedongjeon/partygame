@@ -207,11 +207,22 @@ export default function RoomPage() {
     }
 
     const isHost = room.hostId === userId;
+    const hostName = room.players.find(p => p.id === room.hostId)?.name || 'Unknown Host';
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center bg-zinc-950 p-8 text-white">
-            <h1 className="text-3xl font-bold text-white">Room: {room.id}</h1>
-            <p className="mb-8 text-zinc-400">Host: {room.hostId}</p>
+            <div className="flex w-full max-w-4xl items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-white">Room: {room.id}</h1>
+                    <p className="mb-8 text-zinc-400">Host: {hostName}</p>
+                </div>
+                <button
+                    onClick={() => router.push('/lobby')}
+                    className="rounded-md border border-red-600 px-4 py-2 text-red-600 hover:bg-red-600 hover:text-white transition"
+                >
+                    Leave Room
+                </button>
+            </div>
 
             <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                 {/* Players List */}
