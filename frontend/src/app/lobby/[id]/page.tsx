@@ -7,6 +7,7 @@ import { useSocket } from '@/hooks/useSocket';
 interface Player {
     id: string;
     socketId: string;
+    name: string;
 }
 
 interface GameSettings {
@@ -33,6 +34,7 @@ export default function RoomPage() {
     const [role, setRole] = useState<'imposter' | 'civilian' | null>(null);
     const [secret, setSecret] = useState('');
     const [userId, setUserId] = useState<string | null>(null);
+    const [userName, setUserName] = useState<string>('');
 
     const [hasVoted, setHasVoted] = useState(false);
     const [winner, setWinner] = useState<'imposter' | 'civilians' | null>(null);
@@ -43,11 +45,20 @@ export default function RoomPage() {
         const storedUserId = sessionStorage.getItem('userId');
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setUserId(storedUserId);
+
+        // Fetch current profile name
+        fetch('http://localhost:4000/v1/users/me', { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                setUserName(data.displayName || data.email?.split('@')[0] || 'Guest');
+            })
+            .catch(() => setUserName('Guest'));
     }, []);
 
     useEffect(() => {
         if (!socket) return;
         if (!userId) return; // Wait for userId to be loaded
+        if (!userName) return; // Wait for userName to be loaded
 
         // Listen for updates
         socket.on('playerJoined', (updatedRoom: Room) => {
@@ -83,7 +94,7 @@ export default function RoomPage() {
         });
 
         // Join the room
-        socket.emit('joinRoom', { roomId: id, userId }, (response: { event: string; data: Room | string }) => {
+        socket.emit('joinRoom', { roomId: id, userId, name: userName }, (response: { event: string; data: Room | string }) => {
             if (response.event === 'error') {
                 setError(response.data as string);
             } else if (response.event === 'roomJoined') {
@@ -102,7 +113,7 @@ export default function RoomPage() {
             socket.off('gameEnded');
             socket.off('settingsUpdated');
         };
-    }, [socket, id, userId]); // Depend on userId so we join after it's loaded
+    }, [socket, id, userId, userName]); // Depend on userId and userName
 
     const handleStartGame = () => {
         if (!userId) return;
@@ -196,11 +207,22 @@ export default function RoomPage() {
     }
 
     const isHost = room.hostId === userId;
+    const hostName = room.players.find(p => p.id === room.hostId)?.name || 'Unknown Host';
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center bg-zinc-950 p-8 text-white">
-            <h1 className="text-3xl font-bold text-white">Room: {room.id}</h1>
-            <p className="mb-8 text-zinc-400">Host: {room.hostId}</p>
+            <div className="flex w-full max-w-4xl items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-white">Room: {room.id}</h1>
+                    <p className="mb-8 text-zinc-400">Host: {hostName}</p>
+                </div>
+                <button
+                    onClick={() => router.push('/lobby')}
+                    className="rounded-md border border-red-600 px-4 py-2 text-red-600 hover:bg-red-600 hover:text-white transition"
+                >
+                    Leave Room
+                </button>
+            </div>
 
             <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                 {/* Players List */}
@@ -210,7 +232,9 @@ export default function RoomPage() {
                         {room.players.map((p) => (
                             <li key={p.socketId} className="flex items-center gap-2 rounded-md bg-zinc-800 p-2">
                                 <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                                <span className="text-sm text-zinc-300">{p.id === userId ? 'Me' : p.id} ({p.socketId.slice(0, 4)})</span>
+                                <span className="text-sm text-zinc-300">
+                                    {p.name} {p.id === userId && '(Me)'}
+                                </span>
                             </li>
                         ))}
                     </ul>

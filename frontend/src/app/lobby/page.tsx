@@ -9,6 +9,7 @@ export default function LobbyPage() {
     const socket = useSocket();
     const [joinRoomId, setJoinRoomId] = useState('');
     const [userId, setUserId] = useState<string | null>(null);
+    const [userName, setUserName] = useState<string>('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -20,7 +21,10 @@ export default function LobbyPage() {
                     const user = await res.json();
                     // Use googleId (or email as fallback) as the unique user ID
                     const uid = user.googleId || user.email || `user_${Math.floor(Math.random() * 1000)}`;
+                    const name = user.displayName || user.email?.split('@')[0] || `User_${Math.floor(Math.random() * 1000)}`;
+
                     setUserId(uid);
+                    setUserName(name);
                     sessionStorage.setItem('userId', uid);
                     setLoading(false);
                 } else {
@@ -46,9 +50,13 @@ export default function LobbyPage() {
             console.error('[LobbyPage] UserID is null/undefined');
             return;
         }
+        if (!userName) {
+            console.error('[LobbyPage] UserName is null/undefined');
+            return;
+        }
 
-        console.log('[LobbyPage] Emitting createRoom with userId:', userId);
-        socket.emit('createRoom', { userId }, (response: { type: string; data: { id: string } }) => {
+        console.log('[LobbyPage] Emitting createRoom with userId:', userId, 'name:', userName);
+        socket.emit('createRoom', { userId, name: userName }, (response: { type: string; data: { id: string } }) => {
             console.log('[LobbyPage] createRoom response:', response);
             if (response.type === 'roomCreated') {
                 router.push(`/lobby/${response.data.id}`);
@@ -71,7 +79,7 @@ export default function LobbyPage() {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-zinc-950 text-white">
             <h1 className="mb-8 text-4xl font-bold">Lobby</h1>
-            <p className="mb-4 text-zinc-400">Welcome, {userId}</p>
+            <p className="mb-4 text-zinc-400">Welcome, {userName || userId}</p>
 
             <div className="flex flex-col gap-4">
                 <button

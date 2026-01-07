@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Menu as MenuIcon, LogOut } from 'lucide-react';
+import { Menu as MenuIcon, LogOut, User } from 'lucide-react';
 
 export default function Menu() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [displayName, setDisplayName] = useState('');
     const router = useRouter();
     const pathname = usePathname();
     const menuRef = useRef<HTMLDivElement>(null);
@@ -21,6 +23,13 @@ export default function Menu() {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
+    }, []);
+
+    useEffect(() => {
+        // Fetch current profile
+        fetch('http://localhost:4000/v1/users/me', { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => setDisplayName(data.displayName || ''));
     }, []);
 
     const handleLogout = async () => {
@@ -43,6 +52,23 @@ export default function Menu() {
         }
     };
 
+    const handleSaveProfile = async () => {
+        try {
+            const res = await fetch('http://localhost:4000/v1/users/me', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ displayName }),
+                credentials: 'include',
+            });
+            if (res.ok) {
+                setIsProfileOpen(false);
+                router.refresh(); // Refresh to potentially update other components
+            }
+        } catch (error) {
+            console.error('Failed to update profile', error);
+        }
+    };
+
     if (pathname === '/') return null;
 
     return (
@@ -62,6 +88,7 @@ export default function Menu() {
                     <button
                         onClick={() => {
                             setIsOpen(false);
+                            console.log('Navigating to games');
                             router.push('/games');
                         }}
                         className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-zinc-700"
@@ -70,12 +97,54 @@ export default function Menu() {
                         Games
                     </button>
                     <button
+                        onClick={() => {
+                            setIsOpen(false);
+                            setIsProfileOpen(true);
+                        }}
+                        className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-zinc-700"
+                    >
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                    </button>
+                    <button
                         onClick={handleLogout}
                         className="flex w-full items-center px-4 py-2 text-sm text-white hover:bg-zinc-700"
                     >
                         <LogOut className="mr-2 h-4 w-4" />
                         Logout
                     </button>
+                </div>
+            )}
+
+            {isProfileOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="w-80 rounded-lg bg-zinc-900 p-6 shadow-xl border border-zinc-700">
+                        <h2 className="mb-4 text-xl font-bold text-white">Edit Profile</h2>
+                        <div className="mb-4">
+                            <label className="mb-1 block text-sm text-zinc-400">Display Name</label>
+                            <input
+                                type="text"
+                                value={displayName}
+                                onChange={(e) => setDisplayName(e.target.value)}
+                                className="w-full rounded bg-zinc-800 p-2 text-white border border-zinc-700 focus:outline-none focus:border-blue-500"
+                                placeholder="Enter your name"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setIsProfileOpen(false)}
+                                className="rounded px-4 py-2 text-sm text-zinc-400 hover:text-white"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveProfile}
+                                className="rounded bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
