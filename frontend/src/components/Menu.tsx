@@ -27,14 +27,14 @@ export default function Menu() {
 
     useEffect(() => {
         // Fetch current profile
-        fetch('http://localhost:4000/v1/users/me', { credentials: 'include' })
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => setDisplayName(data.displayName || ''));
     }, []);
 
     const handleLogout = async () => {
         try {
-            const res = await fetch('http://localhost:4000/v1/auth/logout', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/auth/logout`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -54,7 +54,7 @@ export default function Menu() {
 
     const handleSaveProfile = async () => {
         try {
-            const res = await fetch('http://localhost:4000/v1/users/me', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ displayName }),

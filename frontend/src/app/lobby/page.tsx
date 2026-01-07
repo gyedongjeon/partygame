@@ -16,7 +16,7 @@ export default function LobbyPage() {
         // Fetch current user
         const fetchUser = async () => {
             try {
-                const res = await fetch('http://localhost:4000/v1/users/me', { credentials: 'include' });
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, { credentials: 'include' });
                 if (res.ok) {
                     const user = await res.json();
                     // Use googleId (or email as fallback) as the unique user ID

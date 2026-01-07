@@ -25,6 +25,11 @@ import { LobbyModule } from './lobby/lobby.module';
         database: configService.get<string>('DATABASE_NAME'),
         entities: [User],
         synchronize: true, // Only for development
+        ssl:
+          configService.get<string>('DATABASE_SSL') === 'true' ||
+            configService.get<string>('NODE_ENV') === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
     UsersModule,
@@ -34,4 +39,4 @@ import { LobbyModule } from './lobby/lobby.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
