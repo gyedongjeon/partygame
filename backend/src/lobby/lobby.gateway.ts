@@ -107,6 +107,13 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const secret = isImposter
           ? 'YOU ARE THE IMPOSTER'
           : `Secret Word: ${room.word}`;
+
+        console.log('[startGame] Sending to player:', player.id, {
+          timeLimitEnabled: room.settings.timeLimitEnabled,
+          timeLimitDuration: room.settings.timeLimitDuration,
+          endTime: room.endTime,
+        });
+
         this.server.to(player.socketId).emit('gameStarted', {
           gameState: room.gameState,
           role: isImposter ? 'imposter' : 'civilian',
@@ -124,6 +131,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('vote')
   handleVote(
     @MessageBody() data: { roomId: string; userId: string; targetId: string },
+    @ConnectedSocket() client: Socket,
   ) {
     try {
       const { room, result } = this.lobbyService.vote(
@@ -131,6 +139,9 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.userId,
         data.targetId,
       );
+
+      // Emit voteAccepted to the voter
+      client.emit('voteAccepted');
 
       if (result) {
         this.server.to(room.id).emit('gameEnded', result);

@@ -205,10 +205,14 @@ export default function RoomPage() {
                     <div className="text-3xl font-mono bg-black p-4 rounded-md border border-zinc-700">
                         {secret}
                     </div>
-                    {timeLeft !== null && (
+                    {timeLeft !== null ? (
                         <div className={`mt-4 text-2xl font-bold font-mono ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-400'}`}>
                             ⏱ {timeLeft}s
                         </div>
+                    ) : endTime ? (
+                        <div className="mt-4 text-xl text-yellow-500">Loading timer...</div>
+                    ) : (
+                        <div className="mt-4 text-sm text-zinc-600">(No time limit set)</div>
                     )}
                 </div>
 
