@@ -3,11 +3,24 @@ import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-// Singleton instance
+// Helper to read cookies in browser
+const getCookie = (name: string) => {
+    if (typeof document === 'undefined') return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+    return null;
+};
+
+// Singleton instance with dynamic auth
 const socket: Socket = io(SOCKET_URL, {
     transports: ['websocket'],
     withCredentials: true,
     autoConnect: true,
+    auth: (cb) => {
+        const token = getCookie('auth_token');
+        cb({ token });
+    }
 });
 
 export const useSocket = () => {
