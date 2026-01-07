@@ -63,29 +63,33 @@ export class LobbyService {
         // Prevent duplicate join
         const existingPlayer = room.players.find((p) => p.id === playerId);
         if (!existingPlayer) {
-            if (room.players.some((p) => p.name === playerName)) {
-                throw new Error(`Username '${playerName}' is already taken in this room`);
-            }
-            room.players.push({ id: playerId, socketId, name: playerName });
+            const uniqueName = this.getUniqueName(room, playerName, playerId);
+            room.players.push({ id: playerId, socketId, name: uniqueName });
         } else {
             // Update socket ID and Name on reconnect
             // Only update name if it changed, and ensure uniqueness if it's different from current
             if (existingPlayer.name !== playerName) {
-                if (
-                    room.players.some(
-                        (p) => p.name === playerName && p.id !== playerId,
-                    )
-                ) {
-                    throw new Error(
-                        `Username '${playerName}' is already taken in this room`,
-                    );
-                }
-                existingPlayer.name = playerName;
+                existingPlayer.name = this.getUniqueName(room, playerName, playerId);
             }
             existingPlayer.socketId = socketId;
         }
 
         return room;
+    }
+
+    private getUniqueName(
+        room: Room,
+        baseName: string,
+        playerId: string,
+    ): string {
+        let name = baseName;
+        let counter = 1;
+        // Check if name exists for ANY OTHER player
+        while (room.players.some((p) => p.name === name && p.id !== playerId)) {
+            name = `${baseName} (${counter})`;
+            counter++;
+        }
+        return name;
     }
 
     leaveRoom(roomId: string, playerId: string): Room | null {
