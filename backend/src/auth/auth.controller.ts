@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Req, Res, UseGuards, Body } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
@@ -23,7 +23,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Google OAuth2 callback' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to frontend with HttpOnly cookie',
+    description: 'Redirects to frontend with one-time code',
   })
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
@@ -33,23 +33,25 @@ export class AuthController {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const { access_token } = this.authService.login(user);
 
+    // Generate one-time code instead of passing JWT directly
+    const code = this.authService.generateCode(access_token);
+
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const redirectBase = frontendUrl || 'http://localhost:3000';
+    // Redirect with one-time code (NOT the JWT)
+    const redirectUrl = `${redirectBase}/api/auth/callback?code=${code}`;
 
-    // Robust check: Production if NODE_ENV is production OR if frontend uses HTTPS
-    const isProduction =
-      process.env.NODE_ENV === 'production' ||
-      (Boolean(frontendUrl) && (frontendUrl as string).startsWith('https'));
-
-    // Set HttpOnly Cookie
-    res.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
-
-    const redirectUrl = frontendUrl || 'http://localhost:3000';
     res.redirect(redirectUrl);
+  }
+
+  @ApiOperation({ summary: 'Exchange one-time code for JWT' })
+  @ApiBody({ schema: { properties: { code: { type: 'string' } } } })
+  @ApiResponse({ status: 200, description: 'Returns JWT token' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired code' })
+  @Post('exchange')
+  exchangeCode(@Body() body: { code: string }) {
+    const jwt = this.authService.exchangeCode(body.code);
+    return { access_token: jwt };
   }
 
   @ApiOperation({ summary: 'Logout user' })
