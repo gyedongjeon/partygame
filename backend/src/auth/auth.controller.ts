@@ -38,7 +38,7 @@ export class AuthController {
     // Robust check: Production if NODE_ENV is production OR if frontend uses HTTPS
     const isProduction =
       process.env.NODE_ENV === 'production' ||
-      (frontendUrl && frontendUrl.startsWith('https'));
+      (Boolean(frontendUrl) && (frontendUrl as string).startsWith('https'));
 
     // Set HttpOnly Cookie
     res.cookie('access_token', access_token, {
@@ -60,7 +60,7 @@ export class AuthController {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
     const isProduction =
       process.env.NODE_ENV === 'production' ||
-      (frontendUrl && frontendUrl.startsWith('https'));
+      (Boolean(frontendUrl) && (frontendUrl as string).startsWith('https'));
 
     res.clearCookie('access_token', {
       httpOnly: true,
