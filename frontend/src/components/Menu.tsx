@@ -25,9 +25,28 @@ export default function Menu() {
         };
     }, []);
 
+    // Helper to read cookies
+    const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+    };
+
+    const getAuthHeaders = (): HeadersInit => {
+        const token = getCookie('auth_token');
+        if (token) {
+            return { 'Authorization': `Bearer ${token}` };
+        }
+        return {};
+    };
+
     useEffect(() => {
         // Fetch current profile
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, { credentials: 'include' })
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        })
             .then(res => res.json())
             .then(data => setDisplayName(data.displayName || ''));
     }, []);
@@ -37,10 +56,13 @@ export default function Menu() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/auth/logout`, {
                 method: 'POST',
                 credentials: 'include',
+                headers: getAuthHeaders(),
             });
 
             if (res.ok) {
-                // Clear local session logic if any
+                // Clear cookies locally
+                document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 sessionStorage.removeItem('userId');
                 router.push('/');
                 router.refresh(); // Refresh to clear any server-side cached states if existing
@@ -56,7 +78,7 @@ export default function Menu() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ displayName }),
                 credentials: 'include',
             });
