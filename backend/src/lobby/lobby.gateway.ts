@@ -75,7 +75,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     try {
       const room = this.lobbyService.joinRoom(
-        data.roomId,
+        data.roomId.toUpperCase(),
         data.userId,
         client.id,
         data.name,
@@ -93,8 +93,8 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomId: string; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.lobbyService.leaveRoom(data.roomId, data.userId);
-    await client.leave(data.roomId);
+    const room = this.lobbyService.leaveRoom(data.roomId.toUpperCase(), data.userId);
+    await client.leave(data.roomId.toUpperCase());
     if (room) {
       this.server.to(room.id).emit('playerLeft', room);
     }
@@ -105,7 +105,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleStartGame(@MessageBody() data: { roomId: string; userId: string }) {
     try {
       const room = this.lobbyService.startGame(
-        data.roomId,
+        data.roomId.toUpperCase(),
         data.userId,
         (timeoutRoomId) => {
           // Callback when time expires
@@ -150,7 +150,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     try {
       const { room, result } = this.lobbyService.vote(
-        data.roomId,
+        data.roomId.toUpperCase(),
         data.userId,
         data.targetId,
       );
@@ -179,7 +179,7 @@ export class LobbyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     try {
       const room = this.lobbyService.updateSettings(
-        data.roomId,
+        data.roomId.toUpperCase(),
         data.userId,
         data.settings,
       );
