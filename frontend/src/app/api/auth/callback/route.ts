@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         response.cookies.set('access_token', access_token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none', // Changed to none for cross-domain support
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
             maxAge: 24 * 60 * 60, // 1 day
         });

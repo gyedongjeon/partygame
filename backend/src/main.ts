@@ -6,14 +6,17 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
   app.set('trust proxy', 1);
   app.enableCors({
     origin: (origin: string, callback: (err: Error | null, origin?: boolean) => void) => {
       const allowedOrigins = [
         'http://localhost:3000',
         (process.env.FRONTEND_URL || '').replace(/\/$/, ''), // Remove trailing slash
-      ];
+        ...(process.env.CORS_ORIGINS || '').split(',').map(url => url.trim()),
+      ].filter(Boolean);
 
       // Allow Vercel preview URLs dynamically
       const isVercelPreview = origin && origin.endsWith('.vercel.app');
