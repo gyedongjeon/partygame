@@ -120,10 +120,10 @@ export default function RoomPage() {
         });
 
         // Join the room
-        socket.emit('joinRoom', { roomId: id, userId, name: userName }, (response: { event: string; data: Room | string }) => {
-            if (response.event === 'error') {
+        socket.emit('joinRoom', { roomId: id, userId, name: userName }, (response: { type: string; data: Room | string }) => {
+            if (response.type === 'error') {
                 setError(response.data as string);
-            } else if (response.event === 'roomJoined') {
+            } else if (response.type === 'roomJoined') {
                 setRoom(response.data as Room);
             }
         });
