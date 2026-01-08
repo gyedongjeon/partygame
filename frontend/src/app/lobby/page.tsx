@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { authFetch } from '@/utils/auth';
 import { useSocket } from '@/hooks/useSocket';
 
 export default function LobbyPage() {
@@ -16,7 +17,7 @@ export default function LobbyPage() {
         // Fetch current user
         const fetchUser = async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, { credentials: 'include' });
+                const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`);
                 if (res.ok) {
                     const user = await res.json();
                     // Use googleId (or email as fallback) as the unique user ID
