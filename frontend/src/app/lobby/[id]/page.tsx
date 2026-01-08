@@ -24,6 +24,8 @@ interface Room {
     settings: GameSettings;
 }
 
+import { authFetch } from '@/utils/auth';
+
 export default function RoomPage() {
     const { id } = useParams(); // Room ID from URL
     const router = useRouter();
@@ -47,7 +49,7 @@ export default function RoomPage() {
         setUserId(storedUserId);
 
         // Fetch current profile name
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`, { credentials: 'include' })
+        authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/users/me`)
             .then(res => res.json())
             .then(data => {
                 setUserName(data.displayName || data.email?.split('@')[0] || 'Guest');
